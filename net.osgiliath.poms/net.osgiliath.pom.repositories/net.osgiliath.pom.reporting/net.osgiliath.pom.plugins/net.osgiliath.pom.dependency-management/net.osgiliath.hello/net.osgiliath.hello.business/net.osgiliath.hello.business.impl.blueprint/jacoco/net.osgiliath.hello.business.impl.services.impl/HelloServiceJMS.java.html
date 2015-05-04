@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>HelloServiceJMS.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Blueprint configured business module</a> &gt; <a href="index.source.html" class="el_package">net.osgiliath.hello.business.impl.services.impl</a> &gt; <span class="el_source">HelloServiceJMS.java</span></div><h1>HelloServiceJMS.java</h1><pre class="source lang-java linenums">package net.osgiliath.hello.business.impl.services.impl;
+
+/*
+ * #%L
+ * net.osgiliath.hello.business.impl
+ * %%
+ * Copyright (C) 2013 Osgiliath
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import java.util.Collection;
+import java.util.Set;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import javax.jms.ObjectMessage;
+import javax.jms.Session;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validator;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import net.osgiliath.hello.business.model.Hellos;
+import net.osgiliath.hello.business.spi.services.HelloService;
+import net.osgiliath.hello.model.jpa.model.HelloEntity;
+import net.osgiliath.hello.model.jpa.repository.HelloObjectRepository;
+import org.springframework.jms.core.JmsOperations;
+import org.springframework.jms.core.MessageCreator;
+
+/**
+ * JMS sample of Hello service exports.
+ * 
+ * @author charliemordant
+ * 
+ */
+<span class="nc" id="L50">@Slf4j</span>
+<span class="nc" id="L51">public class HelloServiceJMS implements HelloService, MessageListener {</span>
+  /**
+   * Database persistence repository.
+   */
+<span class="nc" id="L55">  @Setter</span>
+  private transient HelloObjectRepository helloObjectRepository;
+  /**
+   * Hibernate validator.
+   */
+<span class="nc" id="L60">  @Setter</span>
+  private transient Validator validator;
+  /**
+   * JMS producer.
+   */
+<span class="nc" id="L65">  @Setter</span>
+  private transient JmsOperations template;
+
+  /**
+   * JMS consumer.
+   * 
+   * @throws JMSException persistence error
+   */
+  @Override
+  public void persistHello(HelloEntity hello) {
+
+<span class="nc" id="L76">    log</span>
+<span class="nc" id="L77">        .error(&quot;****************** Save on JMS Service **********************&quot;);</span>
+<span class="nc" id="L78">    log</span>
+<span class="nc" id="L79">        .info(&quot;persisting new message with jms: &quot; + hello.getHelloMessage());</span>
+<span class="nc" id="L80">    final Set&lt;ConstraintViolation&lt;HelloEntity&gt;&gt; validationResults = this.validator</span>
+<span class="nc" id="L81">        .validate(hello);</span>
+<span class="nc" id="L82">    final StringBuilder errors = new StringBuilder(&quot;&quot;);</span>
+
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (!validationResults.isEmpty()) {</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">      for (final ConstraintViolation&lt;HelloEntity&gt; violation : validationResults) {</span>
+<span class="nc" id="L86">        log.info(&quot;subscription error, validating user:&quot;</span>
+<span class="nc" id="L87">            + violation.getMessage());</span>
+<span class="nc" id="L88">        errors.append(violation.getPropertyPath()).append(&quot;: &quot;)</span>
+<span class="nc" id="L89">            .append(violation.getMessage().replaceAll(&quot;\&quot;&quot;, &quot;&quot;)).append(';')</span>
+<span class="nc" id="L90">            .append(System.lineSeparator());</span>
+<span class="nc" id="L91">      }</span>
+<span class="nc" id="L92">      this.template.send(&quot;helloServiceQueueErrors&quot;, new MessageCreator() {</span>
+        /**
+         * Creates a JMS message
+         * @param session JMS session
+         * @return the JMS message
+         * @throws JMSException invalid payload
+         */
+        public Message createMessage(final Session session) throws JMSException {          
+<span class="nc" id="L100">          return session.createTextMessage(errors.toString());</span>
+        }
+      });
+    }
+<span class="nc" id="L104">    this.helloObjectRepository.save(hello);</span>
+<span class="nc" id="L105">    this.template.send(&quot;helloServiceQueueOut&quot;, new MessageCreator() {</span>
+      /**
+       * Creates a JMS message
+       * @param session JMS session
+       * @return the JMS message
+       * @throws JMSException invalid payload
+       */
+      public Message createMessage(final Session session) throws JMSException {
+<span class="nc" id="L113">        return session.createObjectMessage(getHellos());</span>
+      }
+    });
+
+<span class="nc" id="L117">  }</span>
+
+  /**
+   * Returns all entities.
+   * @return all entities
+   */
+  @Override
+  public Hellos getHellos() {
+
+<span class="nc" id="L126">    final Collection&lt;HelloEntity&gt; helloObjects = this.helloObjectRepository</span>
+<span class="nc" id="L127">        .findAll();</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (helloObjects.isEmpty()) {</span>
+<span class="nc" id="L129">      throw new UnsupportedOperationException(</span>
+          &quot;You could not call this method when the list is empty&quot;);
+    }
+    return Hellos
+<span class="nc" id="L133">        .builder()</span>
+<span class="nc" id="L134">        .helloCollection(</span>
+<span class="nc" id="L135">            Lists.newArrayList(Iterables.transform(helloObjects,</span>
+<span class="nc" id="L136">                this.helloObjectToStringFunction))).build();</span>
+  }
+
+  /**
+   * Function that transforms entities to string.
+   */
+<span class="nc" id="L142">  private final transient Function&lt;HelloEntity, String&gt; helloObjectToStringFunction = new Function&lt;HelloEntity, String&gt;() {</span>
+
+    @Override
+    public String apply(HelloEntity entity) {
+<span class="nc" id="L146">      return entity.getHelloMessage();</span>
+    }
+  };
+
+  /**
+   * Deletes all entities.
+   */
+  @Override
+  public void deleteAll() {
+<span class="nc" id="L155">    this.helloObjectRepository.deleteAll();</span>
+
+<span class="nc" id="L157">  }</span>
+  /**
+   * Method called on message reception.
+   * @param message received message
+   */
+  @Override
+  public void onMessage(Message message) {
+    try {
+<span class="nc" id="L165">      final HelloEntity helloObject_p = (HelloEntity) ((ObjectMessage) message)</span>
+<span class="nc" id="L166">          .getObject();</span>
+<span class="nc" id="L167">      this.persistHello(helloObject_p);</span>
+    }
+<span class="nc" id="L169">    catch (JMSException e) {</span>
+<span class="nc" id="L170">      log.error(&quot;error receiving JMS message&quot;, e);</span>
+<span class="nc" id="L171">    }</span>
+
+<span class="nc" id="L173">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

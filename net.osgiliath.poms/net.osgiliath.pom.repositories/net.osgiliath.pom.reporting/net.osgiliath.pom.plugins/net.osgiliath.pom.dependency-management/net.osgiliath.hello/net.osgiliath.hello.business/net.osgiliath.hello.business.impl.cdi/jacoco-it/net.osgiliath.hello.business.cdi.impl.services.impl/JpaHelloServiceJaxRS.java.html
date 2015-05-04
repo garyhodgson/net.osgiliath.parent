@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>JpaHelloServiceJaxRS.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">CDI configured business module</a> &gt; <a href="index.source.html" class="el_package">net.osgiliath.hello.business.cdi.impl.services.impl</a> &gt; <span class="el_source">JpaHelloServiceJaxRS.java</span></div><h1>JpaHelloServiceJaxRS.java</h1><pre class="source lang-java linenums">package net.osgiliath.hello.business.cdi.impl.services.impl;
+
+/*
+ * #%L
+ * net.osgiliath.hello.business.impl
+ * %%
+ * Copyright (C) 2013 Osgiliath
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import java.util.Collection;
+import javax.inject.Inject;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import lombok.extern.slf4j.Slf4j;
+import net.osgiliath.hello.business.model.Hellos;
+import net.osgiliath.hello.model.jpa.model.HelloEntity;
+import net.osgiliath.hello.model.jpa.repository.HelloObjectRepository;
+import org.ops4j.pax.cdi.api.OsgiService;
+
+/**
+ * Sample of a business service with JaxRS and CDI.
+ * 
+ * @author charliemordant
+ * 
+ */
+<span class="fc" id="L42">@Slf4j</span>
+<span class="fc" id="L43">public class JpaHelloServiceJaxRS implements</span>
+    net.osgiliath.hello.business.cdi.impl.HelloServiceJaxRS {
+  /**
+   * JPA persistence repository.
+   */
+  @Inject
+  @OsgiService
+  private transient HelloObjectRepository helloObjectRepository;
+
+  /**
+   * persistence module.
+   * @param helloObject element to save
+   */
+  @Override
+  public void persistHello(@NotNull @Valid HelloEntity helloObject) {
+<span class="fc" id="L58">    log.info(&quot;persisting new message with jaxrs: &quot;</span>
+<span class="fc" id="L59">        + helloObject.getHelloMessage());</span>
+<span class="fc" id="L60">    this.helloObjectRepository.save(helloObject);</span>
+
+<span class="fc" id="L62">  }</span>
+
+  /**
+   * Gets hello entities.
+   * @return the entities
+   */
+  @Override
+  public Hellos getHellos() {
+<span class="fc" id="L70">    final Collection&lt;HelloEntity&gt; helloObjects = this.helloObjectRepository</span>
+<span class="fc" id="L71">        .findAll();</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">    if (helloObjects.isEmpty()) {</span>
+<span class="nc" id="L73">      throw new UnsupportedOperationException(</span>
+          &quot;You could not call this method when there are no helloObjects&quot;);
+    }
+    return Hellos
+<span class="fc" id="L77">        .builder()</span>
+<span class="fc" id="L78">        .helloCollection(</span>
+<span class="fc" id="L79">            Lists.newArrayList(Iterables.transform(helloObjects,</span>
+<span class="fc" id="L80">                helloObjectToStringFunction))).build();</span>
+  }
+
+  /**
+   * converts entities to Strings.
+   */
+  // Guava function waiting for Java 8
+<span class="fc" id="L87">  private final transient Function&lt;HelloEntity, String&gt; helloObjectToStringFunction = new Function&lt;HelloEntity, String&gt;() {</span>
+
+    @Override
+    public String apply(HelloEntity arg0) {
+<span class="fc" id="L91">      return arg0.getHelloMessage();</span>
+    }
+  };
+
+  /**
+   * deletes all entities.
+   */
+  @Override
+  public void deleteAll() {
+<span class="fc" id="L100">    log.info(&quot;deleting all datas&quot;);</span>
+<span class="fc" id="L101">    this.helloObjectRepository.deleteAll();</span>
+<span class="fc" id="L102">  }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>

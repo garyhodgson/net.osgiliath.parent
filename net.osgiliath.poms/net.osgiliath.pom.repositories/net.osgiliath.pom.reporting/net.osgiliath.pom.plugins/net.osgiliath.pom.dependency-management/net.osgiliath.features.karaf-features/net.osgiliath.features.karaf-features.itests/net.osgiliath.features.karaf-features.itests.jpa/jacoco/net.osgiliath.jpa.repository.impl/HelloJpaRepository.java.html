@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../.resources/report.gif" type="image/gif"/><title>HelloJpaRepository.java</title><link rel="stylesheet" href="../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../.sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Osgiliath integration tests JPA</a> &gt; <a href="index.source.html" class="el_package">net.osgiliath.jpa.repository.impl</a> &gt; <span class="el_source">HelloJpaRepository.java</span></div><h1>HelloJpaRepository.java</h1><pre class="source lang-java linenums">package net.osgiliath.jpa.repository.impl;
+
+/*
+ * #%L
+ * net.osgiliath.hello.model.jpa
+ * %%
+ * Copyright (C) 2013 Osgiliath
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
+import java.util.Collection;
+
+import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+
+import lombok.Setter;
+import net.osgiliath.jpa.model.HelloEntity;
+import net.osgiliath.jpa.model.HelloEntity_;
+import net.osgiliath.jpa.repository.HelloRepository;
+
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
+
+/**
+ * Spring data jpa repository declaration.
+ * 
+ * @author charliemordant
+ */
+public class HelloJpaRepository extends SimpleJpaRepository&lt;HelloEntity, Long&gt;
+    implements HelloRepository {
+  /**
+   * Entity manager.
+   */
+<span class="nc" id="L49">  @Setter</span>
+  private transient EntityManager entityManager;
+
+  /**
+   * Ctor.
+   * 
+   * @param domainClass
+   *          class
+   * @param em
+   *          entity manager
+   */
+  public HelloJpaRepository(final Class&lt;HelloEntity&gt; domainClass,
+      final EntityManager entityManager) {
+<span class="nc" id="L62">    super(domainClass, entityManager);</span>
+<span class="nc" id="L63">    setEntityManager(entityManager);</span>
+<span class="nc" id="L64">  }</span>
+
+  /**
+   * Finds by helloMessage.
+   * 
+   * @param message
+   *          the message to find elements from
+   * @return all corresponding entities
+   */
+  @Override
+  public final Collection&lt;? extends HelloEntity&gt; findByHelloObjectMessage(
+      final String message) {
+<span class="nc" id="L76">    final CriteriaBuilder builder = this.entityManager.getCriteriaBuilder();</span>
+<span class="nc" id="L77">    final CriteriaQuery&lt;HelloEntity&gt; criteria = builder</span>
+<span class="nc" id="L78">        .createQuery(HelloEntity.class);</span>
+<span class="nc" id="L79">    final Root&lt;HelloEntity&gt; helloObject = criteria.from(HelloEntity.class);</span>
+<span class="nc" id="L80">    criteria.select(helloObject);</span>
+<span class="nc" id="L81">    final Predicate where = builder.equal(</span>
+<span class="nc" id="L82">        helloObject.get(HelloEntity_.helloMessage), message);</span>
+<span class="nc" id="L83">    criteria.where(where);</span>
+<span class="nc" id="L84">    final TypedQuery&lt;HelloEntity&gt; query = this.entityManager</span>
+<span class="nc" id="L85">        .createQuery(criteria);</span>
+<span class="nc" id="L86">    return query.getResultList();</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.2.201409121644</span></div></body></html>
